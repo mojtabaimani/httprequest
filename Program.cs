@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Configuration;
 using Microsoft.Extensions.Configuration;
+using System.Text;
 
 class Program
 {
@@ -14,21 +15,42 @@ class Program
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
         IConfigurationRoot configuration = builder.Build();
+        string apiUrl = configuration["ApiUrl"];
+        string authUrl = configuration["AuthUrl"];
 
         var credentials = new
         {
             Username = configuration["Username"],
             Password = configuration["Password"]
         };
-        string authToken = configuration["AuthToken"];
-        string apiUrl = configuration["ApiUrl"];
+        string jsonCredentials = System.Text.Json.JsonSerializer.Serialize(credentials);
 
         try
         {
             using (HttpClient client = new HttpClient())
             {
+
+                // Authentication with the API
+
+                var content = new StringContent(jsonCredentials, Encoding.UTF8, "application/json");
+
+                var response1 = client.PostAsync(authUrl, content).Result; // Use .Result for synchronous operation
+                string token = string.Empty;
+                if (response1.IsSuccessStatusCode)
+                {
+                    // Extract the token from the response
+                    token = response1.Content.ReadAsStringAsync().Result; // Assuming the token is returned as plain text
+                    Console.WriteLine($"Token: {token}");
+                }
+                else
+                {
+                    Console.WriteLine("Authentication failed.");
+                }
+                //
+
+
                 // Add the X-Auth-Token header with your authentication token
-                client.DefaultRequestHeaders.Add("X-Auth-Token", authToken);
+                client.DefaultRequestHeaders.Add("X-Auth-Token", token);
 
                 // Loop to run the request 10 times
                 for (int i = 0; i < 10; i++)
