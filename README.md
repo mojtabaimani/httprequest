@@ -17,5 +17,6 @@ dotnet restore
 To start the program run:
 
 ```c#
+cd client
 dotnet run
 ```
